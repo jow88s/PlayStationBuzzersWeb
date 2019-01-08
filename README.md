@@ -7,3 +7,10 @@ The playstation buzzers are used for determine the fastest one that pushed on th
 - Node js is used for reading the wired-usb playstation buzzers and then communication via websockets for updating the webapplication
 
 Many thanks to the creators that made this [project](https://www.hakantuncer.com/2016/09/07/creating-an-online-quiz-game-using-node-dot-js) for reading and parsing the bytestream that the buzzers generate !
+
+
+## Usage
+
+- clone the repository
+- run the command 'nom install'
+- you can start the 'backend' and 'webserver' via the command 'npm start'
