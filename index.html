@@ -1,0 +1,513 @@
+<!doctype html>
+<html>
+
+<!-- author Jowolo - jow88s@gmail.com -->
+
+<head>
+  <title>Playstation Buzzers Web</title>
+  <style>
+  </style>
+  <link rel="stylesheet" type="text/css" href="w3.css">
+</head>
+
+<body onkeypress="return myKeyPress(event)">
+
+  <div class="w3-center">
+    <h1>Playstation Buzzers Web</h1>
+  </div>
+
+  <div class="w3-container w3-margin">
+
+    <div class="w3-left">
+
+      <div class="w3-cell-row">
+
+        <div class="w3-container w3-cell">
+          <button id="id-button-start-time" class="w3-bar-item w3-button w3-teal">Start</button>
+        </div>
+        <div class="w3-container w3-cell">
+          <button id="id-button-stop-time" class="w3-bar-item w3-button w3-red">Stop</button>
+        </div>
+
+        <div class="w3-container w3-cell">
+          <button id="id-button-timer" class="w3-bar-item w3-button w3-blue">Timer</button>
+        </div>
+
+      </div>
+
+      <div>
+        <input style="font-size: 70px;width: 250px;" id="id-input-time" type=number class="w3-input" value="0" />
+      </div>
+    </div>
+
+    <div class="w3-right">
+
+      <div class="w3-cell-row">
+        <div class="w3-container w3-cell">
+          <button id="id-button-reset" class="w3-bar-item w3-button w3-black">New</button>
+        </div>
+
+        <div class="w3-container w3-cell">
+          <select id="id-select-groups" class="w3-select">
+            <option value="0" disabled selected>Choose a group</option>
+            <option value="1" id="id-option-group0">Group</option>
+            <option value="2" id="id-option-group1">Group</option>
+            <option value="3" id="id-option-group2">Group</option>
+            <option value="4" id="id-option-group3">Group</option>
+          </select>
+        </div>
+
+        <div class="w3-container w3-cell">
+          <span id="id-begin-score" class="w3-bar-item"></span>
+        </div>
+        <div class="w3-container w3-cell">
+          <button id="id-button-score-increment" class="w3-bar-item w3-button w3-teal">+</button>
+        </div>
+        <div class="w3-container w3-cell">
+          <button id="id-button-score-decrement" class="w3-bar-item w3-button w3-red">-</button>
+        </div>
+      </div>
+    </div>
+
+    <br />
+    <br />
+    <br />
+    <br />
+    <br />
+    <br />
+
+    <div class="w3-container">
+
+      <table class="w3-table w3-bordered" style="font-size: 45px;">
+
+        <col width="30%">
+        <col width="10%">
+        <col width="60%">
+
+        <tr>
+          <th class="w3-right">Time (sec)</th>
+          <th class="w3-center">Score</th>
+          <th>Group</th>
+        </tr>
+
+        <tr>
+          <td class="w3-right">
+            <span id="deltaTime0"></span>
+          </td>
+          <td class="w3-center">
+            <div id="score0">0</div>
+          </td>
+          <td>
+            <div id="groupname0" class="controller" data-controller-id="1">group1</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="w3-right">
+            <span id="deltaTime1"></span>
+          </td>
+          <td class="w3-center">
+            <div id="score1">0</div>
+          </td>
+          <td>
+            <div id="groupname1" class="controller" data-controller-id="2">group2</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="w3-right">
+            <span id="deltaTime2"></span>
+          </td>
+          <td class="w3-center">
+            <div id="score2">0</div>
+          </td>
+          <td>
+            <div id="groupname2" class="controller" data-controller-id="3">group3</div>
+          </td>
+        </tr>
+
+        <tr>
+          <td class="w3-right">
+            <span id="deltaTime3"></span>
+          </td>
+          <td class="w3-center">
+            <div id="score3">0</div>
+          </td>
+          <td>
+            <div id="groupname3" class="controller" data-controller-id="4">group4</div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <audio id="id-audio-notify">
+    <source src="notify.mp3" type="audio/mpeg"> Your browser does not support the audio element.
+  </audio>
+
+  <script type="text/javascript" src="socket.io-1.2.0.js"></script>
+  <script type="text/javascript" src="jquery-1.11.1.js"></script>
+  <script>
+    var groupInfo1 = {
+      controllerId: 1,
+      score: 0,
+      name: "Group1",
+      deltaTime: -1
+    };
+    var groupInfo2 = {
+      controllerId: 2,
+      score: 0,
+      name: "Group2",
+      deltaTime: -1
+    };
+    var groupInfo3 = {
+      controllerId: 3,
+      score: 0,
+      name: "Group3",
+      deltaTime: -1
+    };
+    var groupInfo4 = {
+      controllerId: 4,
+      score: 0,
+      name: "Group4",
+      deltaTime: -1
+    };
+
+    var groups = [];
+
+    var bClickedFirst = false;
+    var nowMilliSeconds = 0;
+
+    var socket = io();
+
+    var timeIntervalId;
+    var stopwatch = 0; // seconds // used for timer en count-down-timer
+
+    $(function () {
+
+      socket.on('buzz-clicked', function (msg) {
+        //console.log("buzz-clicked msg=" + JSON.stringify(msg));
+        var controllerId = msg.ControllerId;
+        console.log("controllerId=" + controllerId);
+
+        if (bClickedFirst == false) {
+          highlightGroup(controllerId);
+
+          nowMilliSeconds = new Date().getTime();
+          bClickedFirst = true;
+        }
+
+        var deltaTime = new Date().getTime() - nowMilliSeconds;
+        console.log("deltaTime=" + deltaTime);
+
+        setDeltaTime(controllerId, deltaTime);
+
+        printGroups();
+
+      });
+
+      socket.on("button-reset", function (msg) {
+        console.log("button-reset from socket");
+        buttonReset();
+
+      });
+    });
+
+
+    $(document).on("click", "#id-button-start-time", function () {
+
+      console.log("id-button-start-time click");
+
+      clearInterval(timeIntervalId);
+
+      stopwatch = $("#id-input-time").val();
+
+      console.log("stopwatch=" + stopwatch);
+
+      if (stopwatch == "")
+        stopwatch = 0;
+
+      $("#id-input-time").val(stopwatch);
+      timeIntervalId = setInterval(function () {
+        stopwatch++;
+        $("#id-input-time").val(stopwatch);
+
+      }, 1000);
+
+
+    });
+
+
+    $(document).on("click", "#id-button-stop-time", function () {
+
+      console.log("id-button-stop-time click");
+
+      clearInterval(timeIntervalId);
+
+
+    });
+
+
+    // countdown from the value that is given in the input-value towards zero
+    $(document).on("click", "#id-button-timer", function () {
+
+      console.log("id-button-timer click");
+
+      clearInterval(timeIntervalId);
+
+      stopwatch = parseInt($("#id-input-time").val());
+
+      if (stopwatch > 0) {
+
+
+        //$("#id-span-time-seconds").text(stopwatch + " sec");
+        timeIntervalId = setInterval(function () {
+
+          $("#id-input-time").val(stopwatch)
+          if (stopwatch > 0) {
+
+            stopwatch--;
+
+          } else {
+            playSoundTimerDone();
+            clearInterval(timeIntervalId);
+          }
+
+        }, 1000);
+      }
+
+
+    });
+
+
+    $(document).on("click", "#id-button-reset", function () {
+
+      console.log("id-button-reset click");
+
+      buttonReset();
+
+    });
+
+    $(document).on("click", "#id-button-score-increment", function () {
+      buttonIncrement();
+    });
+
+    $(document).on("click", "#id-button-score-decrement", function () {
+      buttonDecrement();
+    });
+
+    /////////////
+
+    $(document).ready(function () {
+
+      console.log = function () { };
+
+      var groupsAsJson = localStorage.getItem("groupinfos", JSON.stringify(groups));
+
+      if (groupsAsJson) {
+        groups = JSON.parse(groupsAsJson);
+        for (var i = 0; i < groups.length; i++) {
+          groups[i].deltaTime = -1;
+        }
+      } else {
+        groups.push(groupInfo1);
+        groups.push(groupInfo2);
+        groups.push(groupInfo3);
+        groups.push(groupInfo4);
+
+      }
+
+      printGroups();
+
+      adjustGroupNames();
+    });
+
+    function myKeyPress(event) {
+
+      console.log("myKeyPress=" + event.keyCode);
+
+      if (event.keyCode == 43) { // '43' = + on numpad
+        buttonIncrement();
+      }
+      else if (event.keyCode == 45) // '45' = - on numpad
+      {
+        buttonDecrement();
+      }
+      else if (event.keyCode == 48) // '48' = 0 on numpad
+      {
+
+        buttonReset();
+      }
+    }
+
+    function playSoundTimerDone() {
+
+      console.log("playSoundTimerDone");
+
+      var audio = new Audio('schoolbell.wav');
+      audio.play();
+      // var x = document.getElementById("id-audio-notify");
+      // x.play();
+
+    }
+
+    function insertIntoLocalStorage() {
+
+      // insert the array of groupinfo into localstorage
+      localStorage.setItem("groupinfos", JSON.stringify(groups));
+    }
+
+
+    function buttonReset() {
+
+      insertIntoLocalStorage();
+
+      clearHighLightingGroup();
+
+      bClickedFirst = false;
+
+      for (var i = 0; i < groups.length; i++) {
+        groups[i].deltaTime = -1;
+      }
+
+      $("#id-select-groups").val("0");
+
+      $("#id-begin-score").text(" ");
+
+      printGroups();
+    }
+
+    function buttonIncrement(selectedControllerId) {
+      console.log("id-button-score-increment");
+
+      var selectedControllerId = $("#id-select-groups").val();
+      console.log("selectedControllerId=" + selectedControllerId);
+
+      if (selectedControllerId > 0) {
+
+
+        clearHighLightingGroup(); // to avoid confusing stuffs, because the groups are dynamically sorted by score
+        var selectedControllerId = $("#id-select-groups").val();
+        for (var i = 0; i < groups.length; i++) {
+          if (groups[i].controllerId == selectedControllerId) {
+            groups[i].score++;
+          }
+        }
+
+        insertIntoLocalStorage();
+        printGroups();
+      }
+
+
+    }
+
+    function buttonDecrement(selectedControllerId) {
+      console.log("id-button-score-decrement");
+
+
+      var selectedControllerId = $("#id-select-groups").val();
+      console.log("selectedControllerId=" + selectedControllerId);
+
+      if (selectedControllerId > 0) {
+
+
+        clearHighLightingGroup(); // to avoid confusing stuffs, because the groups are dynamically sorted by score
+        for (var i = 0; i < groups.length; i++) {
+          if (groups[i].controllerId == selectedControllerId) {
+            if (groups[i].score > 0)
+              groups[i].score--;
+          }
+        }
+        insertIntoLocalStorage();
+        printGroups();
+      }
+
+    }
+
+    function adjustGroupNames() {
+
+      // adjust the group-names in the select for assigning score for each group
+      for (var i = 0; i < groups.length; i++) {
+        var element = $("#id-option-group" + i);
+        element.text(groups[i].name);
+        element.attr("value", groups[i].controllerId);
+      }
+
+    }
+
+    function setDeltaTime(controllerId, deltaTime) {
+      for (var i = 0; i < groups.length; i++) {
+        if (groups[i].controllerId === controllerId) {
+
+          if (groups[i].deltaTime < 0) {
+            // only set the delta on the first push-on-the-button
+            groups[i].deltaTime = deltaTime;
+          }
+
+          break;
+        }
+      }
+    }
+
+    function printGroups() {
+
+      groups.sort(compare);
+
+      for (var i = 0; i < groups.length; i++) {
+
+        $("#groupname" + i).text(groups[i].name);
+        $("#groupname" + i).attr("data-controller-id", groups[i].controllerId);
+        $("#score" + i).text(groups[i].score);
+        if (groups[i].deltaTime > 0) {
+          var seconds_with_milli = parseFloat(groups[i].deltaTime / 1000).toFixed(3);
+          $("#deltaTime" + i).text(seconds_with_milli);
+        } else {
+          $("#deltaTime" + i).text("");
+        }
+      }
+    }
+
+    function clearHighLightingGroup() {
+      $(".controller").css("background-color", "white");
+    }
+
+    // param controllerId has format '3'
+    function highlightGroup(controllerId) {
+
+      console.log("hightightGroup controllerId=" + controllerId);
+
+      clearHighLightingGroup();
+
+      // search for the given controllerId and adjust some css that it will makes it hightlighted
+      $(".controller").each(function (index, obj) {
+        var el = $(obj);
+        var attrControllerId = el.attr("data-controller-id");
+        if (attrControllerId == controllerId) {
+          el.css("background-color", "yellow");
+        }
+      });
+
+
+      // also set this winning controller in the select-box for assinging score
+      $("#id-select-groups").val(controllerId);
+
+      // set the begin-score of the controller
+      for (var i = 0; i < groups.length; i++) {
+        if (groups[i].controllerId === controllerId) {
+          $("#id-begin-score").text(groups[i].score);
+        }
+      }
+
+    }
+
+    function compare(a, b) {
+      if (a.score < b.score)
+        return 1;
+      if (a.score > b.score)
+        return -1;
+      return 0;
+    }
+  </script>
+</body>
+
+</html>
