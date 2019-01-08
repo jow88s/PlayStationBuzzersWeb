@@ -20,3 +20,5 @@ Many thanks to the creators that made this [project](https://www.hakantuncer.com
 - if you get an **error** about 'index.js:59 device.on("data", function(data) {' then you have not connected the playstation buzzers via usb
 
 ### License MIT
+
+#### Contact : jow88s@gmail.com
